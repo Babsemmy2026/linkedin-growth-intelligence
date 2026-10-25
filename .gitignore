@@ -1,0 +1,65 @@
+# Python environment
+.venv/
+__pycache__/
+*.pyc
+
+# Personal LinkedIn data
+data/raw/
+data/processed/
+*.zip
+
+# Credentials
+.env
+.env.*
+!.env.example
+profiles.yml
+
+# dbt generated files
+**/target/
+**/dbt_packages/
+**/logs/
+
+# Jupyter
+.ipynb_checkpoints/
+# ==========================================
+# LINKEDIN GROWTH INTELLIGENCE
+# ==========================================
+
+# Python environments and cache
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Private LinkedIn data
+data/raw/
+data/processed/
+*.xlsx
+*.xls
+*.csv
+*.html
+
+# Credentials and secrets
+.env
+.env.*
+!.env.example
+profiles.yml
+*.pem
+*.key
+*.p12
+
+# dbt generated artifacts
+**/target/
+**/logs/
+**/dbt_packages/
+
+# Jupyter and Hex local artifacts
+.ipynb_checkpoints/
+.hex/
+
+# Editor and OS files
+.vscode/
+.idea/
+.DS_Store
+*.swp
