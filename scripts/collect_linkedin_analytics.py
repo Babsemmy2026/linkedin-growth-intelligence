@@ -1,4 +1,5 @@
 from pathlib import Path
+from datetime import datetime, timezone
 import subprocess
 import sys
 import time
@@ -31,8 +32,9 @@ def downloaded_files():
 
 def process_single_report(report_path, expected_post_id):
     """
-    Process only one Excel report using the existing parser.
-    Temporarily isolate it in a separate project structure.
+    Validate one Excel analytics report using the existing parser.
+    Record the collection timestamp only after successful parsing
+    and post-ID verification.
     """
 
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -47,14 +49,9 @@ def process_single_report(report_path, expected_post_id):
         temp_report = temp_raw / report_path.name
         shutil.copy2(report_path, temp_report)
 
-        # The existing parser uses its own project paths.
-        # We therefore inspect its implementation before attempting
-        # isolated execution.
         parser_path = BASE / "scripts/parse_post_analytics.py"
-
         parser_code = parser_path.read_text()
 
-        # Replace the parser's project root for this isolated run.
         original = "Path(__file__).resolve().parent.parent"
 
         if original not in parser_code:
@@ -103,6 +100,13 @@ def process_single_report(report_path, expected_post_id):
                 f"but report belongs to {actual_post_id}."
             )
 
+        # Record when this report was successfully collected
+        # and validated. Store the timestamp in UTC.
+        collected_at = datetime.now(timezone.utc).isoformat()
+
+        new_data["collected_at"] = collected_at
+        new_data["timestamp_source"] = "collector_clock"
+
         if PARSED.exists():
             existing = pd.read_csv(PARSED, dtype=str)
 
@@ -113,6 +117,7 @@ def process_single_report(report_path, expected_post_id):
         else:
             combined = new_data
 
+        # Keep the latest processed record for each post.
         combined = combined.drop_duplicates(
             subset=["post_id"],
             keep="last"
@@ -121,7 +126,9 @@ def process_single_report(report_path, expected_post_id):
         combined.to_csv(PARSED, index=False)
 
         print(f"Verified post ID: {actual_post_id}")
-        print("Metrics saved successfully.")
+        print(f"Collected at (UTC): {collected_at}")
+        print("Timestamp source: collector_clock")
+        print("Metrics and timestamp saved successfully.")
 
 
 def refresh_queue():
@@ -185,8 +192,6 @@ def collect():
             break
 
         if response == "unavailable":
-            from datetime import datetime, timezone
-
             unavailable_file = (
                 BASE / "data/processed/unavailable_analytics.csv"
             )
@@ -226,7 +231,6 @@ def collect():
 
         if response == "skip":
             print("Post skipped for now.")
-            # Avoid reopening the same skipped post immediately.
             print("Restart later to retry this post.")
             break
 
@@ -251,7 +255,7 @@ def collect():
             target = DESTINATION / f"{post_id}_{file.name}"
 
         try:
-            # Validate the report BEFORE moving or saving it.
+            # Validate and parse before moving the report.
             process_single_report(file, post_id)
 
             shutil.move(str(file), str(target))
